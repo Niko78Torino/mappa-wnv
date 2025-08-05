@@ -6,7 +6,6 @@
 
 # Definisce una funzione programmata (scheduled function).
 # Usa la sintassi "cron job" per definire l'intervallo.
-# "0 */4 * * *" significa: "Esegui allo scoccare dell'ora, ogni 4 ore".
-# (es. a mezzanotte, alle 4:00, alle 8:00, ecc.)
+# "0 * * * *" significa: "Esegui allo scoccare di ogni ora".
 [functions."update-data"]
-  schedule = "0 */4 * * *"
+  schedule = "0 * * * *"
