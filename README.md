@@ -27,7 +27,7 @@ Funzionalità Principali
 Come Avviare il Progetto Localmente
 Questo progetto è composto da un singolo file index.html senza dipendenze da installare.
 
-Clona il repository: git clone https://github.com/TUO_USERNAME/NOME_REPOSITORY.git
+Clona il repository: https://github.com/Niko78Torino/mappa-wnv.git
 
 Apri il file index.html in un qualsiasi browser web.
 
@@ -42,3 +42,4 @@ Questo progetto è mantenuto grazie al supporto della comunità. Se lo trovi uti
 Licenza
 
 Questo progetto è rilasciato sotto la Licenza MIT.
+
