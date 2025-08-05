@@ -1,4 +1,4 @@
-Mappa di Monitoraggio WNV - Europa
+Mappa di Monitoraggio Virus West Nile (WNV) - Europa
 Una mappa interattiva e affidabile per monitorare la diffusione del Virus West Nile in Europa, basata sui dati ufficiali del Centro Europeo per la Prevenzione e il Controllo delle Malattie (ECDC).
 
 ➡️ Visualizza la mappa live qui
@@ -42,4 +42,5 @@ Questo progetto è mantenuto grazie al supporto della comunità. Se lo trovi uti
 Licenza
 
 Questo progetto è rilasciato sotto la Licenza MIT.
+
 
