@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="it" dir="auto">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-translate="pageTitle">Mappa Monitoraggio WNV - Europa</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- LeafletJS CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Noto Sans for specific languages -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+SC:wght@400;700&family=Noto+Sans:wght@400;700&family=Noto+Kufi+Arabic:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Noto Sans', 'Noto Sans JP', 'Noto Sans SC', 'Noto Kufi Arabic', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        body.rtl {
+            direction: rtl;
+        }
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+            min-height: 65vh;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 10;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 8px;
+        }
+        .leaflet-popup-content {
+            margin: 12px;
+            font-size: 14px;
+        }
+        .legend {
+            line-height: 1.5;
+        }
+        .pulse-marker {
+            stroke: white;
+            stroke-width: 2;
+            animation: pulse-animation 1.5s infinite;
+        }
+        @keyframes pulse-animation {
+            0% { stroke-width: 2; r: 8; }
+            50% { stroke-width: 4; stroke: #ef4444; r: 12; }
+            100% { stroke-width: 2; r: 8; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md flex-shrink-0 flex items-center justify-between px-4 sm:px-6 py-3 z-20 relative">
+        <div class="flex items-center space-x-3">
+            <svg class="w-8 h-8 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+            <div>
+                <h1 class="text-lg sm:text-xl font-bold text-gray-900" data-translate="headerTitle">Monitoraggio Virus West Nile (WNV) - Europa</h1>
+                <p id="last-update" class="text-sm text-gray-500" data-translate="headerSubtitle">Dati ECDC per il territorio europeo</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 sm:space-x-4">
+            <a href="https://buy.stripe.com/8x25kFdwZaBu7Fe1T4djO03" target="_blank" rel="noopener noreferrer" class="hidden sm:flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-3 rounded-lg transition-colors shadow">
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>
+                <span data-translate="supportButton">Supporta il Progetto</span>
+            </a>
+            <div class="relative">
+                <select id="language-switcher" class="block appearance-none w-full bg-white border border-gray-300 hover:border-gray-400 px-3 py-2 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="it">Italiano</option>
+                    <option value="en">English</option>
+                    <option value="de">Deutsch</option>
+                    <option value="fr">Français</option>
+                    <option value="ro">Română</option>
+                    <option value="ru">Русский</option>
+                    <option value="zh">中文</option>
+                    <option value="ja">日本語</option>
+                    <option value="ar">العربية</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Map Container -->
+    <main id="map-container">
+        <div id="map"></div>
+    </main>
+    
+    <!-- Info Section -->
+    <section class="bg-white py-8 px-4 sm:px-6 lg:px-8 border-t-2 border-gray-200">
+        <div class="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4" data-translate="howItWorksTitle">Come Funziona la Mappa</h2>
+                <div class="space-y-4 text-sm">
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 class="font-bold text-base text-blue-600" data-translate="officialSourceTitle">Fonte Ufficiale</h3>
+                        <p class="text-gray-700 mt-1" data-translate="officialSourceDesc">La mappa si collega direttamente ai dati del <strong>Centro Europeo per la Prevenzione e il Controllo delle Malattie (ECDC)</strong>. È la stessa fonte utilizzata dall'Istituto Superiore di Sanità e dai media per i bollettini ufficiali. Questo garantisce che le informazioni siano le più accurate e verificate possibili.</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 class="font-bold text-base text-blue-600" data-translate="stableDataTitle">Dati Stabili</h3>
+                        <p class="text-gray-700 mt-1" data-translate="stableDataDesc">Per garantire che la mappa sia sempre visibile e non dipenda da servizi esterni instabili, i dati dell'ultimo bollettino ufficiale sono stati integrati direttamente nell'applicazione. Questo assicura un'esperienza affidabile e senza interruzioni.</p>
+                    </div>
+                </div>
+            </div>
+            <div>
+                 <h2 class="text-2xl font-bold text-gray-800 mb-4" data-translate="disclaimerTitle">Disclaimer e Fonti</h2>
+                 <div class="space-y-4 text-sm">
+                    <div class="p-4 bg-red-100 text-red-800 rounded-lg font-medium border border-red-200">
+                        <strong data-translate="disclaimerStrong">Disclaimer:</strong> <span data-translate="disclaimerText">Questa mappa è solo una raccolta di informazioni a scopo illustrativo e non deve essere utilizzata per diagnosi mediche o decisioni sanitarie. Non intende sostituire in alcun modo il parere di esperti o le comunicazioni ufficiali.</span>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <p data-translate="dataSource">I dati visualizzati provengono dal <strong>Centro Europeo per la Prevenzione e il Controllo delle Malattie (ECDC)</strong>.</p>
+                         <p class="pt-2 mt-2 border-t border-gray-200" data-translate="officialInfo">Per informazioni ufficiali e aggiornate, si prega di consultare direttamente i siti web dell'ECDC, dell'Istituto Superiore di Sanità (ISS) e del Ministero della Salute.</p>
+                         <p class="pt-2 mt-2 text-center text-xs text-gray-600"><span data-translate="contactInfo">Per segnalazioni o informazioni:</span> <a href="mailto:luminaessenza1@gmail.com" class="text-blue-600 hover:underline">luminaessenza1@gmail.com</a></p>
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-200 p-3 text-gray-700 text-xs z-20 flex-shrink-0">
+        <div class="max-w-7xl mx-auto text-center">
+            <p class="font-semibold" data-translate="footerDev">© 2025 Sviluppato da Nicola Nicolaci</p>
+        </div>
+    </footer>
+
+    <script>
+        // --- START TRANSLATION LOGIC ---
+        const translations = {
+            it: {
+                pageTitle: "Mappa Monitoraggio WNV - Europa",
+                headerTitle: "Monitoraggio Virus West Nile (WNV) - Europa",
+                headerSubtitle: "Dati ECDC per il territorio europeo",
+                supportButton: "Supporta il Progetto",
+                howItWorksTitle: "Come Funziona la Mappa",
+                officialSourceTitle: "Fonte Ufficiale",
+                officialSourceDesc: "La mappa si collega direttamente ai dati del <strong>Centro Europeo per la Prevenzione e il Controllo delle Malattie (ECDC)</strong>. È la stessa fonte utilizzata dall'Istituto Superiore di Sanità e dai media per i bollettini ufficiali. Questo garantisce che le informazioni siano le più accurate e verificate possibili.",
+                stableDataTitle: "Dati Stabili",
+                stableDataDesc: "Per garantire che la mappa sia sempre visibile e non dipenda da servizi esterni instabili, i dati dell'ultimo bollettino ufficiale sono stati integrati direttamente nell'applicazione. Questo assicura un'esperienza affidabile e senza interruzioni.",
+                disclaimerTitle: "Disclaimer e Fonti",
+                disclaimerStrong: "Disclaimer:",
+                disclaimerText: "Questa mappa è solo una raccolta di informazioni a scopo illustrativo e non deve essere utilizzata per diagnosi mediche o decisioni sanitarie. Non intende sostituire in alcun modo il parere di esperti o le comunicazioni ufficiali.",
+                dataSource: "I dati visualizzati provengono dal <strong>Centro Europeo per la Prevenzione e il Controllo delle Malattie (ECDC)</strong>.",
+                officialInfo: "Per informazioni ufficiali e aggiornate, si prega di consultare direttamente i siti web dell'ECDC, dell'Istituto Superiore di Sanità (ISS) e del Ministero della Salute.",
+                contactInfo: "Per segnalazioni o informazioni:",
+                footerDev: "© 2025 Sviluppato da Nicola Nicolaci",
+                lastUpdate: "Dati aggiornati al:",
+                legendTitle: "Legenda Rischio - Europa",
+                riskLevelHigh: "Focolaio attivo (>= 3 casi)",
+                riskLevelMedium: "Casi confermati (1-2 casi)",
+                riskLevelLow: "Sorveglianza / Nessun caso",
+                legendSource: "Fonte: ECDC",
+                popupRiskLevel: "Livello Rischio:",
+                popupCases: "Casi aggregati:",
+                popupNotes: "Fonte: ECDC (Dati Ufficiali Aggregati)",
+                riskLabelHigh: "ALTO",
+                riskLabelMedium: "MEDIO",
+                riskLabelLow: "BASSO",
+                riskLabelUnknown: "SCONOSCIUTO",
+            },
+            en: {
+                pageTitle: "WNV Monitoring Map - Europe",
+                headerTitle: "West Nile Virus (WNV) Monitoring - Europe",
+                headerSubtitle: "ECDC data for the European territory",
+                supportButton: "Support the Project",
+                howItWorksTitle: "How the Map Works",
+                officialSourceTitle: "Official Source",
+                officialSourceDesc: "The map connects directly to data from the <strong>European Centre for Disease Prevention and Control (ECDC)</strong>. It is the same source used by national health institutes and the media for official reports. This ensures the information is as accurate and verified as possible.",
+                stableDataTitle: "Stable Data",
+                stableDataDesc: "To ensure the map is always visible and not dependent on unstable external services, the latest official bulletin data has been integrated directly into the application. This ensures a reliable and uninterrupted experience.",
+                disclaimerTitle: "Disclaimer and Sources",
+                disclaimerStrong: "Disclaimer:",
+                disclaimerText: "This map is a collection of information for illustrative purposes only and should not be used for medical diagnosis or health decisions. It is not intended to replace the advice of experts or official communications in any way.",
+                dataSource: "The data displayed comes from the <strong>European Centre for Disease Prevention and Control (ECDC)</strong>.",
+                officialInfo: "For official and updated information, please consult the websites of the ECDC, the National Institute of Health (ISS), and the Ministry of Health directly.",
+                contactInfo: "For reports or information:",
+                footerDev: "© 2025 Developed by Nicola Nicolaci",
+                lastUpdate: "Data updated on:",
+                legendTitle: "Risk Legend - Europe",
+                riskLevelHigh: "Active outbreak (>= 3 cases)",
+                riskLevelMedium: "Confirmed cases (1-2 cases)",
+                riskLevelLow: "Surveillance / No cases",
+                legendSource: "Source: ECDC",
+                popupRiskLevel: "Risk Level:",
+                popupCases: "Aggregated Cases:",
+                popupNotes: "Source: ECDC (Official Aggregated Data)",
+                riskLabelHigh: "HIGH",
+                riskLabelMedium: "MEDIUM",
+                riskLabelLow: "LOW",
+                riskLabelUnknown: "UNKNOWN",
+            },
+            de: {
+                pageTitle: "WNV-Überwachungskarte - Europa",
+                headerTitle: "West-Nil-Virus (WNV) Überwachung - Europa",
+                headerSubtitle: "ECDC-Daten für das europäische Gebiet",
+                supportButton: "Projekt unterstützen",
+                howItWorksTitle: "Wie die Karte funktioniert",
+                officialSourceTitle: "Offizielle Quelle",
+                officialSourceDesc: "Die Karte ist direkt mit den Daten des <strong>Europäischen Zentrums für die Prävention und die Kontrolle von Krankheiten (ECDC)</strong> verbunden. Es ist dieselbe Quelle, die von nationalen Gesundheitsinstituten und Medien für offizielle Berichte verwendet wird. Dies gewährleistet, dass die Informationen so genau und verifiziert wie möglich sind.",
+                stableDataTitle: "Stabile Daten",
+                stableDataDesc: "Um sicherzustellen, dass die Karte immer sichtbar ist und nicht von instabilen externen Diensten abhängt, wurden die Daten des letzten offiziellen Bulletins direkt in die Anwendung integriert. Dies gewährleistet eine zuverlässige und unterbrechungsfreie Erfahrung.",
+                disclaimerTitle: "Haftungsausschluss und Quellen",
+                disclaimerStrong: "Haftungsausschluss:",
+                disclaimerText: "Diese Karte ist eine Sammlung von Informationen nur zu illustrativen Zwecken und sollte nicht für medizinische Diagnosen oder Gesundheitsentscheidungen verwendet werden. Sie soll in keiner Weise den Rat von Experten oder offizielle Mitteilungen ersetzen.",
+                dataSource: "Die angezeigten Daten stammen vom <strong>Europäischen Zentrum für die Prävention und die Kontrolle von Krankheiten (ECDC)</strong>.",
+                officialInfo: "Für offizielle und aktualisierte Informationen konsultieren Sie bitte direkt die Websites des ECDC, des Nationalen Gesundheitsinstituts (ISS) und des Gesundheitsministeriums.",
+                contactInfo: "Für Meldungen oder Informationen:",
+                footerDev: "© 2025 Entwickelt von Nicola Nicolaci",
+                lastUpdate: "Daten aktualisiert am:",
+                legendTitle: "Risikolegende - Europa",
+                riskLevelHigh: "Aktiver Ausbruch (>= 3 Fälle)",
+                riskLevelMedium: "Bestätigte Fälle (1-2 Fälle)",
+                riskLevelLow: "Überwachung / Keine Fälle",
+                legendSource: "Quelle: ECDC",
+                popupRiskLevel: "Risikostufe:",
+                popupCases: "Aggregierte Fälle:",
+                popupNotes: "Quelle: ECDC (Offizielle aggregierte Daten)",
+                riskLabelHigh: "HOCH",
+                riskLabelMedium: "MITTEL",
+                riskLabelLow: "NIEDRIG",
+                riskLabelUnknown: "UNBEKANNT",
+            },
+            fr: {
+                pageTitle: "Carte de Surveillance du WNV - Europe",
+                headerTitle: "Surveillance du Virus du Nil Occidental (WNV) - Europe",
+                headerSubtitle: "Données de l'ECDC pour le territoire européen",
+                supportButton: "Soutenir le Projet",
+                howItWorksTitle: "Comment fonctionne la carte",
+                officialSourceTitle: "Source Officielle",
+                officialSourceDesc: "La carte est directement connectée aux données du <strong>Centre européen de prévention et de contrôle des maladies (ECDC)</strong>. C'est la même source que celle utilisée par les instituts nationaux de santé et les médias pour les rapports officiels. Cela garantit que les informations sont aussi précises et vérifiées que possible.",
+                stableDataTitle: "Données Stables",
+                stableDataDesc: "Pour garantir que la carte soit toujours visible et ne dépende pas de services externes instables, les données du dernier bulletin officiel ont été intégrées directement dans l'application. Cela garantit une expérience fiable et ininterrompue.",
+                disclaimerTitle: "Avis de non-responsabilité et Sources",
+                disclaimerStrong: "Avis de non-responsabilité:",
+                disclaimerText: "Cette carte est une collection d'informations à des fins illustratives uniquement et ne doit pas être utilisée pour un diagnostic médical ou des décisions de santé. Elle n'est en aucun cas destinée à remplacer l'avis d'experts ou les communications officielles.",
+                dataSource: "Les données affichées proviennent du <strong>Centre européen de prévention et de contrôle des maladies (ECDC)</strong>.",
+                officialInfo: "Pour des informations officielles et à jour, veuillez consulter directement les sites web de l'ECDC, de l'Institut National de la Santé (ISS) et du Ministère de la Santé.",
+                contactInfo: "Pour des signalements ou des informations :",
+                footerDev: "© 2025 Développé par Nicola Nicolaci",
+                lastUpdate: "Données mises à jour le :",
+                legendTitle: "Légende des Risques - Europe",
+                riskLevelHigh: "Foyer actif (>= 3 cas)",
+                riskLevelMedium: "Cas confirmés (1-2 cas)",
+                riskLevelLow: "Surveillance / Aucun cas",
+                legendSource: "Source : ECDC",
+                popupRiskLevel: "Niveau de Risque :",
+                popupCases: "Cas agrégés :",
+                popupNotes: "Source : ECDC (Données officielles agrégées)",
+                riskLabelHigh: "ÉLEVÉ",
+                riskLabelMedium: "MOYEN",
+                riskLabelLow: "FAIBLE",
+                riskLabelUnknown: "INCONNU",
+            },
+            ro: {
+                pageTitle: "Hartă de Monitorizare WNV - Europa",
+                headerTitle: "Monitorizarea Virusului West Nile (WNV) - Europa",
+                headerSubtitle: "Date ECDC pentru teritoriul european",
+                supportButton: "Susține Proiectul",
+                howItWorksTitle: "Cum Funcționează Harta",
+                officialSourceTitle: "Sursă Oficială",
+                officialSourceDesc: "Harta se conectează direct la datele de la <strong>Centrul European de Prevenire și Control al Bolilor (ECDC)</strong>. Este aceeași sursă utilizată de institutele naționale de sănătate și de media pentru rapoartele oficiale. Acest lucru asigură că informațiile sunt cât mai exacte și verificate posibil.",
+                stableDataTitle: "Date Stabile",
+                stableDataDesc: "Pentru a asigura că harta este mereu vizibilă și nu depinde de servicii externe instabile, datele din cel mai recent buletin oficial au fost integrate direct în aplicație. Acest lucru asigură o experiență fiabilă și neîntreruptă.",
+                disclaimerTitle: "Disclaimer și Surse",
+                disclaimerStrong: "Disclaimer:",
+                disclaimerText: "Această hartă este o colecție de informații doar în scop ilustrativ și nu trebuie utilizată pentru diagnostic medical sau decizii de sănătate. Nu intenționează să înlocuiască în niciun fel sfatul experților sau comunicările oficiale.",
+                dataSource: "Datele afișate provin de la <strong>Centrul European de Prevenire și Control al Bolilor (ECDC)</strong>.",
+                officialInfo: "Pentru informații oficiale și actualizate, vă rugăm să consultați direct site-urile web ale ECDC, Institutului Național de Sănătate (ISS) și Ministerului Sănătății.",
+                contactInfo: "Pentru raportări sau informații:",
+                footerDev: "© 2025 Dezvoltat de Nicola Nicolaci",
+                lastUpdate: "Date actualizate la:",
+                legendTitle: "Legendă Risc - Europa",
+                riskLevelHigh: "Focar activ (>= 3 cazuri)",
+                riskLevelMedium: "Cazuri confirmate (1-2 cazuri)",
+                riskLevelLow: "Supraveghere / Fără cazuri",
+                legendSource: "Sursa: ECDC",
+                popupRiskLevel: "Nivel de Risc:",
+                popupCases: "Cazuri agregate:",
+                popupNotes: "Sursa: ECDC (Date Oficiale Agregate)",
+                riskLabelHigh: "RIDICAT",
+                riskLabelMedium: "MEDIU",
+                riskLabelLow: "SCĂZUT",
+                riskLabelUnknown: "NECUNOSCUT",
+            },
+            ru: {
+                pageTitle: "Карта мониторинга ВЗН - Европа",
+                headerTitle: "Мониторинг вируса Западного Нила (ВЗН) - Европа",
+                headerSubtitle: "Данные ECDC для европейской территории",
+                supportButton: "Поддержать проект",
+                howItWorksTitle: "Как работает карта",
+                officialSourceTitle: "Официальный источник",
+                officialSourceDesc: "Карта напрямую связана с данными <strong>Европейского центра по профилактике и контролю заболеваний (ECDC)</strong>. Это тот же источник, который используют национальные институты здравоохранения и СМИ для официальных отчетов. Это гарантирует максимальную точность и проверенность информации.",
+                stableDataTitle: "Стабильные данные",
+                stableDataDesc: "Чтобы карта всегда была доступна и не зависела от нестабильных внешних сервисов, данные последнего официального бюллетеня были интегрированы непосредственно в приложение. Это обеспечивает надежную и бесперебойную работу.",
+                disclaimerTitle: "Отказ от ответственности и источники",
+                disclaimerStrong: "Отказ от ответственности:",
+                disclaimerText: "Эта карта представляет собой сбор информации исключительно в иллюстративных целях и не должна использоваться для медицинской диагностики или принятия решений в области здравоохранения. Она ни в коей мере не заменяет консультации экспертов или официальные сообщения.",
+                dataSource: "Отображаемые данные получены от <strong>Европейского центра по профилактике и контролю заболеваний (ECDC)</strong>.",
+                officialInfo: "Для получения официальной и обновленной информации, пожалуйста, обращайтесь непосредственно к веб-сайтам ECDC, Национального института здравоохранения (ISS) и Министерства здравоохранения.",
+                contactInfo: "Для сообщений или информации:",
+                footerDev: "© 2025 Разработано Никола Николачи",
+                lastUpdate: "Данные обновлены:",
+                legendTitle: "Легенда рисков - Европа",
+                riskLevelHigh: "Активная вспышка (>= 3 случаев)",
+                riskLevelMedium: "Подтвержденные случаи (1-2 случая)",
+                riskLevelLow: "Наблюдение / Нет случаев",
+                legendSource: "Источник: ECDC",
+                popupRiskLevel: "Уровень риска:",
+                popupCases: "Совокупные случаи:",
+                popupNotes: "Источник: ECDC (Официальные агрегированные данные)",
+                riskLabelHigh: "ВЫСОКИЙ",
+                riskLabelMedium: "СРЕДНИЙ",
+                riskLabelLow: "НИЗКИЙ",
+                riskLabelUnknown: "НЕИЗВЕСТНО",
+            },
+            zh: {
+                pageTitle: "西尼罗病毒监测地图 - 欧洲",
+                headerTitle: "西尼罗病毒 (WNV) 监测 - 欧洲",
+                headerSubtitle: "欧洲疾病预防控制中心 (ECDC) 的欧洲地区数据",
+                supportButton: "支持项目",
+                howItWorksTitle: "地图如何运作",
+                officialSourceTitle: "官方来源",
+                officialSourceDesc: "该地图直接连接到<strong>欧洲疾病预防控制中心 (ECDC)</strong> 的数据。国家卫生机构和媒体发布的官方报告也使用同一来源。这确保了信息尽可能的准确和经过验证。",
+                stableDataTitle: "稳定数据",
+                stableDataDesc: "为确保地图始终可见且不依赖于不稳定的外部服务，最新的官方公告数据已直接集成到应用程序中。这确保了可靠且不间断的体验。",
+                disclaimerTitle: "免责声明和来源",
+                disclaimerStrong: "免責聲明：",
+                disclaimerText: "此地图仅为说明性目的收集信息，不应用于医疗诊断或健康决策。它无意以任何方式取代专家的建议或官方通讯。",
+                dataSource: "显示的数据来自<strong>欧洲疾病预防控制中心 (ECDC)</strong>。",
+                officialInfo: "有关官方和更新的信息，请直接查阅 ECDC、国家卫生研究院 (ISS) 和卫生部的网站。",
+                contactInfo: "报告或信息：",
+                footerDev: "© 2025 由 Nicola Nicolaci 开发",
+                lastUpdate: "数据更新于：",
+                legendTitle: "风险图例 - 欧洲",
+                riskLevelHigh: "活跃爆发 (>= 3 例)",
+                riskLevelMedium: "确诊病例 (1-2 例)",
+                riskLevelLow: "监测中 / 无病例",
+                legendSource: "来源：ECDC",
+                popupRiskLevel: "风险等级：",
+                popupCases: "累计病例：",
+                popupNotes: "来源：ECDC (官方汇总数据)",
+                riskLabelHigh: "高",
+                riskLabelMedium: "中",
+                riskLabelLow: "低",
+                riskLabelUnknown: "未知",
+            },
+            ja: {
+                pageTitle: "WNV監視マップ - ヨーロッパ",
+                headerTitle: "ウエストナイルウイルス (WNV) 監視 - ヨーロッパ",
+                headerSubtitle: "欧州疾病予防管理センター (ECDC) の欧州地域データ",
+                supportButton: "プロジェクトを支援",
+                howItWorksTitle: "マップの仕組み",
+                officialSourceTitle: "公式情報源",
+                officialSourceDesc: "このマップは、<strong>欧州疾病予防管理センター (ECDC)</strong> のデータに直接接続されています。これは、国の保健機関やメディアが公式報告に使用するのと同じ情報源です。これにより、情報が可能な限り正確で検証済みであることが保証されます。",
+                stableDataTitle: "安定したデータ",
+                stableDataDesc: "マップが常に表示され、不安定な外部サービスに依存しないようにするため、最新の公式速報データがアプリケーションに直接統合されています。これにより、信頼性の高い中断のない体験が保証されます。",
+                disclaimerTitle: "免責事項と情報源",
+                disclaimerStrong: "免責事項：",
+                disclaimerText: "このマップは、説明のみを目的とした情報の集まりであり、医療診断や健康に関する決定に使用しないでください。専門家のアドバイスや公式の連絡に代わるものではありません。",
+                dataSource: "表示されるデータは、<strong>欧州疾病予防管理センター (ECDC)</strong> からのものです。",
+                officialInfo: "公式および更新された情報については、ECDC、国立衛生研究所 (ISS)、および保健省のウェブサイトを直接参照してください。",
+                contactInfo: "報告または情報について：",
+                footerDev: "© 2025 Nicola Nicolaci によって開発されました",
+                lastUpdate: "データ更新日：",
+                legendTitle: "リスク凡例 - ヨーロッパ",
+                riskLevelHigh: "アクティブなアウトブレイク (>= 3件)",
+                riskLevelMedium: "確認された症例 (1-2件)",
+                riskLevelLow: "監視中 / 症例なし",
+                legendSource: "出典：ECDC",
+                popupRiskLevel: "リスクレベル：",
+                popupCases: "集計症例数：",
+                popupNotes: "出典：ECDC (公式集計データ)",
+                riskLabelHigh: "高",
+                riskLabelMedium: "中",
+                riskLabelLow: "低",
+                riskLabelUnknown: "不明",
+            },
+            ar: {
+                pageTitle: "خريطة مراقبة فيروس غرب النيل - أوروبا",
+                headerTitle: "مراقبة فيروس غرب النيل (WNV) - أوروبا",
+                headerSubtitle: "بيانات المركز الأوروبي للوقاية من الأمراض ومكافحتها (ECDC) للمنطقة الأوروبية",
+                supportButton: "ادعم المشروع",
+                howItWorksTitle: "كيف تعمل الخريطة",
+                officialSourceTitle: "مصدر رسمي",
+                officialSourceDesc: "تتصل الخريطة مباشرة ببيانات من <strong>المركز الأوروبي للوقاية من الأمراض ومكافحتها (ECDC)</strong>. وهو نفس المصدر الذي تستخدمه معاهد الصحة الوطنية ووسائل الإعلام للتقارير الرسمية. وهذا يضمن أن تكون المعلومات دقيقة وموثوقة قدر الإمكان.",
+                stableDataTitle: "بيانات مستقرة",
+                stableDataDesc: "لضمان أن تكون الخريطة مرئية دائمًا ولا تعتمد على خدمات خارجية غير مستقرة، تم دمج بيانات آخر نشرة رسمية مباشرة في التطبيق. وهذا يضمن تجربة موثوقة ودون انقطاع.",
+                disclaimerTitle: "إخلاء المسؤولية والمصادر",
+                disclaimerStrong: "إخلاء المسؤولية:",
+                disclaimerText: "هذه الخريطة عبارة عن مجموعة من المعلومات لأغراض توضيحية فقط ولا ينبغي استخدامها للتشخيص الطبي أو القرارات الصحية. وليس المقصود منها أن تحل محل مشورة الخبراء أو الاتصالات الرسمية بأي شكل من الأشكال.",
+                dataSource: "البيانات المعروضة تأتي من <strong>المركز الأوروبي للوقاية من الأمراض ومكافحتها (ECDC)</strong>.",
+                officialInfo: "للحصول على معلومات رسمية ومحدثة، يرجى الرجوع مباشرة إلى مواقع الويب الخاصة بالمركز الأوروبي للوقاية من الأمراض ومكافحتها (ECDC) والمعهد الوطني للصحة (ISS) ووزارة الصحة.",
+                contactInfo: "للإبلاغ أو المعلومات:",
+                footerDev: "© 2025 تم تطويره بواسطة نيكولا نيكولاتشي",
+                lastUpdate: "تم تحديث البيانات في:",
+                legendTitle: "مفتاح الخريطة للمخاطر - أوروبا",
+                riskLevelHigh: "تفشي نشط (>= 3 حالات)",
+                riskLevelMedium: "حالات مؤكدة (1-2 حالة)",
+                riskLevelLow: "مراقبة / لا توجد حالات",
+                legendSource: "المصدر: ECDC",
+                popupRiskLevel: "مستوى الخطورة:",
+                popupCases: "الحالات المجمعة:",
+                popupNotes: "المصدر: ECDC (بيانات مجمعة رسمية)",
+                riskLabelHigh: "مرتفع",
+                riskLabelMedium: "متوسط",
+                riskLabelLow: "منخفض",
+                riskLabelUnknown: "غير معروف",
+            }
+        };
+
+        let currentLang = 'it';
+        let legendControl;
+
+        function setLanguage(lang) {
+            if (!translations[lang]) return;
+            currentLang = lang;
+            document.documentElement.lang = lang;
+            document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+            document.body.classList.toggle('rtl', lang === 'ar');
+
+            document.querySelectorAll('[data-translate]').forEach(el => {
+                const key = el.getAttribute('data-translate');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+            document.title = translations[lang].pageTitle;
+            updateMap(); // Re-render map with new language
+        }
+        // --- END TRANSLATION LOGIC ---
+
+
+        // --- START DATA HANDLING ---
+        function getOfficialData() {
+            return [
+                { attributes: { Country: 'IT', Territory: 'Piemonte', Cases: 5, latitude: 45.07, longitude: 7.68 } },
+                { attributes: { Country: 'IT', Territory: 'Lombardia', Cases: 15, latitude: 45.46, longitude: 9.19 } },
+                { attributes: { Country: 'IT', Territory: 'Veneto', Cases: 25, latitude: 45.44, longitude: 12.33 } },
+                { attributes: { Country: 'IT', Territory: 'Friuli-Venezia Giulia', Cases: 2, latitude: 45.65, longitude: 13.77 } },
+                { attributes: { Country: 'IT', Territory: 'Emilia-Romagna', Cases: 30, latitude: 44.49, longitude: 11.34 } },
+                { attributes: { Country: 'IT', Territory: 'Sardegna', Cases: 1, latitude: 39.22, longitude: 9.11 } },
+                { attributes: { Country: 'IT', Territory: 'Puglia', Cases: 3, latitude: 41.12, longitude: 16.87 } },
+                { attributes: { Country: 'IT', Territory: 'Lazio', Cases: 8, latitude: 41.90, longitude: 12.49 } },
+                { attributes: { Country: 'IT', Territory: 'Campania', Cases: 4, latitude: 40.85, longitude: 14.26 } },
+                { attributes: { Country: 'GR', Territory: 'Thessaloniki', Cases: 12, latitude: 40.64, longitude: 22.94 } },
+                { attributes: { Country: 'GR', Territory: 'Central Macedonia', Cases: 8, latitude: 40.80, longitude: 23.00 } },
+                { attributes: { Country: 'RO', Territory: 'Bucarest', Cases: 8, latitude: 44.42, longitude: 26.10 } },
+                { attributes: { Country: 'HU', Territory: 'Budapest', Cases: 5, latitude: 47.49, longitude: 19.04 } },
+                { attributes: { Country: 'FR', Territory: 'Provence-Alpes-Côte d\'Azur', Cases: 2, latitude: 43.93, longitude: 6.06 } },
+                { attributes: { Country: 'ES', Territory: 'Andalusia', Cases: 1, latitude: 37.38, longitude: -5.98 } },
+            ];
+        }
+
+        function normalizeData(rawData) {
+            const aggregatedData = {};
+            rawData.forEach(item => {
+                const territory = item.attributes.Territory;
+                if (!territory) return;
+                if (!aggregatedData[territory]) {
+                    aggregatedData[territory] = {
+                        location: territory,
+                        country: item.attributes.Country,
+                        lat: item.attributes.latitude,
+                        lng: item.attributes.longitude,
+                        totalCases: 0,
+                    };
+                }
+                aggregatedData[territory].totalCases += item.attributes.Cases;
+            });
+
+            return Object.values(aggregatedData).map(item => ({
+                ...item,
+                humanCases: item.totalCases,
+                riskLevel: item.totalCases >= 3 ? 3 : (item.totalCases > 0 ? 2 : 1),
+            }));
+        }
+        // --- END DATA HANDLING ---
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const lastUpdateElement = document.getElementById('last-update');
+            let markersLayer = L.layerGroup();
+            
+            const map = L.map('map').setView([46, 15], 4);
+            map.addLayer(markersLayer);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                minZoom: 3,
+                maxZoom: 12,
+            }).addTo(map);
+
+            function getRiskColor(level) {
+                switch (level) {
+                    case 3: return '#ef4444'; 
+                    case 2: return '#f59e0b';
+                    case 1: return '#22c55e';
+                    default: return '#6b7280';
+                }
+            }
+            
+            function getRiskLabel(level) {
+                const lang = currentLang;
+                switch (level) {
+                    case 3: return translations[lang].riskLabelHigh;
+                    case 2: return translations[lang].riskLabelMedium;
+                    case 1: return translations[lang].riskLabelLow;
+                    default: return translations[lang].riskLabelUnknown;
+                }
+            }
+            
+            function renderMapData(wnvData) {
+                markersLayer.clearLayers();
+                wnvData.forEach(data => {
+                    if (data.lat === undefined || data.lng === undefined) return;
+                    
+                    const color = getRiskColor(data.riskLevel);
+                    const marker = L.circleMarker([data.lat, data.lng], {
+                        renderer: L.svg(),
+                        radius: 8,
+                        fillColor: color,
+                        color: '#ffffff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8,
+                        className: data.riskLevel === 3 ? 'pulse-marker' : ''
+                    });
+
+                    const popupContent = `
+                        <div class="space-y-2">
+                            <h3 class="font-bold text-lg">${data.location}</h3>
+                            <p class="text-sm text-gray-500 -mt-2">${data.country}</p>
+                            <div class="flex items-center">
+                                <span class="font-semibold mr-2">${translations[currentLang].popupRiskLevel}</span>
+                                <span class="font-bold py-0.5 px-2 rounded-full text-white text-xs" style="background-color: ${color};">
+                                    ${getRiskLabel(data.riskLevel)}
+                                </span>
+                            </div>
+                            <p><span class="font-semibold">${translations[currentLang].popupCases}</span> ${data.humanCases}</p>
+                            <p class="text-sm text-gray-600 border-t pt-2 mt-2">${translations[currentLang].popupNotes}</p>
+                        </div>
+                    `;
+                    marker.bindPopup(popupContent);
+                    markersLayer.addLayer(marker);
+                });
+            }
+
+            window.updateMap = function() {
+                const officialData = getOfficialData();
+                const allData = normalizeData(officialData);
+                renderMapData(allData);
+                const now = new Date();
+                const dateString = new Intl.DateTimeFormat(currentLang, { dateStyle: 'long' }).format(now);
+                lastUpdateElement.innerHTML = `${translations[currentLang].lastUpdate} ${dateString}`;
+                
+                // Update legend
+                if (legendControl) {
+                    map.removeControl(legendControl);
+                }
+                addLegend();
+            }
+            
+            function addLegend() {
+                legendControl = L.control({ position: 'bottomright' });
+                legendControl.onAdd = function (map) {
+                    const div = L.DomUtil.create('div', 'info legend bg-white p-4 rounded-lg shadow-lg');
+                    const lang = currentLang;
+                    const levels = [
+                        {level: 3, text: translations[lang].riskLevelHigh},
+                        {level: 2, text: translations[lang].riskLevelMedium},
+                        {level: 1, text: translations[lang].riskLevelLow}
+                    ];
+                    div.innerHTML += `<h4 class="font-bold mb-2">${translations[lang].legendTitle}</h4>`;
+                    levels.forEach(item => {
+                        const color = getRiskColor(item.level);
+                        div.innerHTML += `<div class="flex items-center my-1"><i class="w-4 h-4 rounded-full mr-2" style="background:${color}"></i><span>${item.text}</span></div>`;
+                    });
+                    div.innerHTML += `<p class="text-xs text-gray-600 mt-2 pt-2 border-t">${translations[lang].legendSource}</p>`
+                    return div;
+                };
+                legendControl.addTo(map);
+            }
+
+            // Initial setup
+            const languageSwitcher = document.getElementById('language-switcher');
+            languageSwitcher.addEventListener('change', (event) => {
+                setLanguage(event.target.value);
+            });
+
+            // Detect browser language and set it if available
+            const userLang = navigator.language.split('-')[0];
+            if (translations[userLang]) {
+                languageSwitcher.value = userLang;
+            }
+            setLanguage(languageSwitcher.value);
+        });
+    </script>
+</body>
+</html>
