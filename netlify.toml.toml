@@ -1,0 +1,12 @@
+# Questo file configura il comportamento di Netlify per il tuo sito.
+
+# Specifica dove si trovano le tue Netlify Functions.
+[functions]
+  directory = "netlify/functions/"
+
+# Definisce una funzione programmata (scheduled function).
+# Usa la sintassi "cron job" per definire l'intervallo.
+# "0 8 * * *" significa: "Esegui ogni giorno alle 8:00 del mattino (UTC)".
+# Puoi cambiare l'orario come preferisci.
+[functions."update-data"]
+  schedule = "0 8 * * *"
