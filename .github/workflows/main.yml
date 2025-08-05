@@ -1,1 +1,13 @@
+name: Trigger Netlify Rebuild
 
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Netlify Rebuild 🚀
+        run: curl -X POST -d {} ${{ secrets.NETLIFY_BUILD_HOOK }}
